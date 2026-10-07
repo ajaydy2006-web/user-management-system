@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management System | RESTful API & Management Console</title>
+  <meta name="description" content="RESTful API for User Management with MongoDB, Mongoose, and Basic Authentication.">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-users-gear"></i>
+        </div>
+        <div class="brand-text">
+          <h1>UserManager<span>.API</span></h1>
+          <p>MongoDB + Basic Auth</p>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard-tab">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="users-tab">
+          <i class="fa-solid fa-users"></i>
+          <span>User Directory</span>
+        </button>
+        <button class="nav-item" data-tab="tester-tab">
+          <i class="fa-solid fa-terminal"></i>
+          <span>API Console (Postman)</span>
+        </button>
+        <button class="nav-item" data-tab="docs-tab">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>API Documentation</span>
+        </button>
+      </nav>
+
+      <div class="server-status-card">
+        <div class="status-indicator online" id="dbStatusDot"></div>
+        <div class="status-info">
+          <span class="status-label">Database Status</span>
+          <span class="status-val" id="dbStatusText">Connected (Mongoose)</span>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a href="/User_Management_API.postman_collection.json" download class="btn-download-postman">
+          <i class="fa-solid fa-file-code"></i>
+          <span>Download Postman JSON</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Navbar Header -->
+      <header class="top-header">
+        <div class="header-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="globalSearchInput" placeholder="Search users by name, email, or department...">
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="btnSeedData">
+            <i class="fa-solid fa-database"></i>
+            <span>Seed Sample Users</span>
+          </button>
+          <button class="btn btn-primary" id="btnOpenCreateModal">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Create New User</span>
+          </button>
+          <div class="auth-pill" id="authPill" title="Click to edit credentials">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span id="authPillText">Basic Auth: admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- View Sections -->
+      <div class="content-body">
+        
+        <!-- DASHBOARD TAB -->
+        <section id="dashboard-tab" class="tab-page active">
+          <div class="page-title-bar">
+            <div>
+              <h2>System Dashboard</h2>
+              <p>Real-time analytics and user database metrics</p>
+            </div>
+            <button class="btn btn-icon" id="btnRefreshStats" title="Refresh Statistics">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="stats-grid">
+            <div class="stat-card glass-card">
+              <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-title">Total Users</span>
+                <h3 class="stat-value" id="statTotalUsers">0</h3>
+                <span class="stat-sub">Registered in MongoDB</span>
+              </div>
+            </div>
+
+            <div class="stat-card glass-card">
+              <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-title">Active Users</span>
+                <h3 class="stat-value" id="statActiveUsers">0</h3>
+                <span class="stat-sub">Status: Active</span>
+              </div>
+            </div>
+
+            <div class="stat-card glass-card">
+              <div class="stat-icon icon-purple">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-title">Administrators</span>
+                <h3 class="stat-value" id="statAdminUsers">0</h3>
+                <span class="stat-sub">Role: Admin</span>
+              </div>
+            </div>
+
+            <div class="stat-card glass-card">
+              <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-user-clock"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-title">Pending Approvals</span>
+                <h3 class="stat-value" id="statPendingUsers">0</h3>
+                <span class="stat-sub">Status: Pending</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions & Recent Users -->
+          <div class="dashboard-split">
+            <div class="recent-users-panel glass-card">
+              <div class="panel-header">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Recently Added Users</h3>
+                <button class="btn-text" onclick="switchToTab('users-tab')">View All <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Department</th>
+                      <th>Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentUsersTableBody">
+                    <tr><td colspan="5" class="empty-cell">Loading users...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="quick-api-panel glass-card">
+              <h3><i class="fa-solid fa-bolt"></i> Endpoint Quick Actions</h3>
+              <p class="panel-desc">Test CRUD actions against MongoDB with basic auth.</p>
+              
+              <div class="action-buttons-list">
+                <button class="action-btn" onclick="quickExecute('GET', '/api/users')">
+                  <span class="badge get">GET</span>
+                  <span class="action-text">Fetch All Users</span>
+                </button>
+                <button class="action-btn" onclick="quickExecute('GET', '/api/users/stats/summary')">
+                  <span class="badge get">GET</span>
+                  <span class="action-text">Fetch Stats Summary</span>
+                </button>
+                <button class="action-btn" onclick="quickExecute('POST', '/api/users/seed')">
+                  <span class="badge post">POST</span>
+                  <span class="action-text">Seed 5 Sample Users</span>
+                </button>
+                <button class="action-btn" onclick="switchToTab('tester-tab')">
+                  <span class="badge put">CUSTOM</span>
+                  <span class="action-text">Open Postman API Tester</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- USERS DIRECTORY TAB -->
+        <section id="users-tab" class="tab-page">
+          <div class="page-title-bar">
+            <div>
+              <h2>User Directory</h2>
+              <p>Full CRUD operations: Create, Read, Update, Delete</p>
+            </div>
+            <div class="filter-controls">
+              <select id="roleFilter" class="select-input">
+                <option value="">All Roles</option>
+                <option value="user">User</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+              <select id="statusFilter" class="select-input">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
+              <button class="btn btn-icon" id="btnRefreshUsers" title="Refresh Table">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Users Table Card -->
+          <div class="glass-card table-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User Details</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Department</th>
+                    <th>Phone</th>
+                    <th>Created At</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="7" class="empty-cell">Loading user records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Table Footer Pagination -->
+            <div class="table-pagination">
+              <span id="paginationInfo">Showing 0 of 0 users</span>
+              <div class="pagination-buttons">
+                <button id="btnPrevPage" class="btn btn-small" disabled><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <span id="currentPageDisplay" class="page-badge">Page 1</span>
+                <button id="btnNextPage" class="btn btn-small" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- API CONSOLE / TESTER TAB -->
+        <section id="tester-tab" class="tab-page">
+          <div class="page-title-bar">
+            <div>
+              <h2>Interactive API Console & Postman Tester</h2>
+              <p>Test RESTful API endpoints directly in real time</p>
+            </div>
+          </div>
+
+          <div class="tester-container glass-card">
+            <!-- Request Bar -->
+            <div class="request-bar">
+              <select id="apiMethod" class="method-select">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+              <div class="url-input-wrap">
+                <span class="url-prefix">http://localhost:5000</span>
+                <input type="text" id="apiUrl" value="/api/users" placeholder="/api/users">
+              </div>
+              <button class="btn btn-primary" id="btnSendRequest">
+                <i class="fa-solid fa-paper-plane"></i> Send Request
+              </button>
+            </div>
+
+            <!-- Endpoint Shortcuts -->
+            <div class="endpoint-chips">
+              <span class="chip-label">Presets:</span>
+              <button class="chip" onclick="setPreset('GET', '/api/users', '')">[GET] All Users</button>
+              <button class="chip" onclick="setPreset('POST', '/api/users', sampleNewUserJSON)">[POST] Create User</button>
+              <button class="chip" onclick="setPreset('GET', '/api/users/stats/summary', '')">[GET] Stats</button>
+              <button class="chip" onclick="setPreset('POST', '/api/users/seed', '')">[POST] Seed Users</button>
+            </div>
+
+            <!-- Auth & Request Body Grid -->
+            <div class="tester-grid">
+              <div class="tester-col">
+                <div class="tab-header-mini">
+                  <h4><i class="fa-solid fa-lock"></i> Basic Authentication Header</h4>
+                </div>
+                <div class="auth-inputs">
+                  <div class="input-group">
+                    <label>Username / Email</label>
+                    <input type="text" id="authUsername" value="admin">
+                  </div>
+                  <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="authPassword" value="admin123">
+                  </div>
+                </div>
+
+                <div class="tab-header-mini" style="margin-top: 20px;">
+                  <h4><i class="fa-solid fa-code"></i> Request Body (JSON)</h4>
+                </div>
+                <textarea id="requestBodyJson" placeholder='{\n  "name": "Jane Smith",\n  "email": "jane@example.com",\n  "password": "password123"\n}'></textarea>
+              </div>
+
+              <div class="tester-col">
+                <div class="tab-header-mini response-header">
+                  <h4><i class="fa-solid fa-reply"></i> Response Output</h4>
+                  <div class="response-meta">
+                    <span id="resStatusBadge" class="status-code-badge status-none">No Request Sent</span>
+                    <span id="resTimeBadge" class="res-time">0 ms</span>
+                  </div>
+                </div>
+                <pre id="responseJsonOutput" class="code-output">// Response body will appear here...</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DOCUMENTATION TAB -->
+        <section id="docs-tab" class="tab-page">
+          <div class="page-title-bar">
+            <div>
+              <h2>API Documentation</h2>
+              <p>Endpoint schemas, Basic Authentication, and Mongoose Data Models</p>
+            </div>
+          </div>
+
+          <div class="docs-grid">
+            <div class="glass-card docs-card">
+              <h3><i class="fa-solid fa-shield-halved"></i> Security: Basic Authentication</h3>
+              <p>All <code>/api/users</code> endpoints are protected with standard HTTP Basic Authentication.</p>
+              <div class="code-snippet">
+                <code>Authorization: Basic YWRtaW46YWRtaW4xMjM=</code>
+              </div>
+              <p>Default credentials: <strong>admin</strong> / <strong>admin123</strong> (or any registered user email + password).</p>
+            </div>
+
+            <div class="glass-card docs-card">
+              <h3><i class="fa-solid fa-cubes"></i> Mongoose User Schema</h3>
+              <div class="schema-list">
+                <div class="schema-item"><code>name</code>: String (Required, 2-100 chars)</div>
+                <div class="schema-item"><code>email</code>: String (Required, Unique, Valid Email)</div>
+                <div class="schema-item"><code>password</code>: String (Hashed with bcryptjs, hidden by default)</div>
+                <div class="schema-item"><code>role</code>: String ('user' | 'admin' | 'manager')</div>
+                <div class="schema-item"><code>status</code>: String ('active' | 'inactive' | 'pending')</div>
+                <div class="schema-item"><code>department</code>: String</div>
+                <div class="schema-item"><code>phone</code>: String</div>
+                <div class="schema-item"><code>bio</code>: String</div>
+              </div>
+            </div>
+
+            <div class="glass-card docs-card full-width">
+              <h3><i class="fa-solid fa-list-check"></i> REST API Endpoints Overview</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Endpoint</th>
+                    <th>Auth Required</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="badge get">GET</span></td>
+                    <td><code>/api/users</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Fetch all users (Supports ?search= & ?role= & ?page=)</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge post">POST</span></td>
+                    <td><code>/api/users</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Create a new user record</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge get">GET</span></td>
+                    <td><code>/api/users/:id</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Get specific user by ID</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge put">PUT</span></td>
+                    <td><code>/api/users/:id</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Update user fields by ID</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge delete">DELETE</span></td>
+                    <td><code>/api/users/:id</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Delete user by ID</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge post">POST</span></td>
+                    <td><code>/api/users/seed</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Populate 5 sample users</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge get">GET</span></td>
+                    <td><code>/api/users/stats/summary</code></td>
+                    <td><span class="badge-mini auth">Basic Auth</span></td>
+                    <td>Get database summary statistics</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create / Edit User Modal -->
+  <div class="modal-backdrop" id="userModal">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Create New User</h3>
+        <button class="btn-close" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="userForm">
+        <input type="hidden" id="userIdInput">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" id="inputName" required placeholder="e.g. Eleanor Vance">
+          </div>
+          <div class="form-group">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="inputEmail" required placeholder="e.g. eleanor@company.org">
+          </div>
+          <div class="form-group" id="passwordGroup">
+            <label>Password <span class="req">*</span></label>
+            <input type="password" id="inputPassword" placeholder="Min 6 characters">
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="inputRole">
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="inputStatus">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Department</label>
+            <input type="text" id="inputDepartment" placeholder="e.g. Engineering">
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" id="inputPhone" placeholder="e.g. +1 555-0199">
+          </div>
+          <div class="form-group full-width">
+            <label>Bio / Description</label>
+            <textarea id="inputBio" rows="3" placeholder="Brief bio or role notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveUser">
+            <i class="fa-solid fa-check"></i> Save User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
